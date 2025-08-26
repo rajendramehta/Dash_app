@@ -296,17 +296,6 @@
             box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-        }
-
-        .btn-success:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
-        }
-
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -512,29 +501,6 @@
             animation: spin 0.8s linear infinite;
             margin-left: 8px;
         }
-
-        /* Success animation */
-        @keyframes bounceIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.3);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.05);
-            }
-            70% {
-                transform: scale(0.9);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .success-animation {
-            animation: bounceIn 0.6s ease-out;
-        }
     </style>
 </head>
 <body>
@@ -602,27 +568,23 @@
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
-                    <div class="step-text">Click process to generate modified files with replacements made</div>
+                    <div class="step-text">Click process to generate and automatically download modified files</div>
                 </div>
                 <div class="step">
                     <div class="step-number">4</div>
-                    <div class="step-text">Download your processed files instantly and securely</div>
+                    <div class="step-text">Your processed files will start downloading immediately</div>
                 </div>
             </div>
 
             <button type="button" class="btn btn-primary" id="processBtn" disabled>
-                <span>🚀 Process Documents</span>
+                <span>🚀 Process & Download</span>
             </button>
 
             <div class="spinner" id="loadingSpinner">
-                <span>⚡ Processing your documents...</span>
+                <span>⚡ Processing and preparing download...</span>
             </div>
 
             <div class="status-message" id="statusMessage"></div>
-
-            <button type="button" class="btn btn-success" id="downloadBtn" style="display: none;">
-                <span>📥 Download Modified Files</span>
-            </button>
         </div>
     </div>
 
@@ -635,7 +597,6 @@
         const fileUploadArea = document.getElementById('fileUploadArea');
         const fileInfo = document.getElementById('fileInfo');
         const processBtn = document.getElementById('processBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
         const spinner = document.getElementById('loadingSpinner');
         const statusMessage = document.getElementById('statusMessage');
         const oldTextInput = document.getElementById('old_text');
@@ -757,7 +718,7 @@
         oldTextInput.addEventListener('input', checkFormValidity);
         newTextInput.addEventListener('input', checkFormValidity);
 
-        // Enhanced process button click with better error handling
+        // Auto-download process button click
         processBtn.addEventListener('click', async function() {
             if (currentFiles.length === 0 || !oldTextInput.value.trim()) {
                 showStatus('❌ Please select files and enter text to find', 'error');
@@ -787,7 +748,6 @@
                         const error = await response.json();
                         errorMessage = error.error || errorMessage;
                     } catch (e) {
-                        // If response is not JSON, use status text
                         errorMessage = response.statusText || errorMessage;
                     }
                     throw new Error(errorMessage);
@@ -804,12 +764,21 @@
                     filename = 'modified_files.zip';
                 }
 
-                downloadBtn.setAttribute('data-url', url);
-                downloadBtn.setAttribute('data-filename', filename);
+                // Automatically start download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
 
-                showStatus('✅ Documents processed successfully!', 'success');
-                downloadBtn.style.display = 'flex';
-                downloadBtn.classList.add('success-animation');
+                showStatus('✅ Documents processed and downloaded successfully!', 'success');
+
+                // Reset form after successful download
+                setTimeout(() => {
+                    resetForm();
+                }, 3000);
 
             } catch (error) {
                 console.error('Processing error:', error);
@@ -819,35 +788,10 @@
             }
         });
 
-        // Enhanced download functionality
-        downloadBtn.addEventListener('click', function() {
-            const url = downloadBtn.getAttribute('data-url');
-            const filename = downloadBtn.getAttribute('data-filename');
-
-            if (url && filename) {
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-
-                showStatus('📥 Download started successfully!', 'success');
-
-                // Reset form after successful download
-                setTimeout(() => {
-                    resetForm();
-                }, 2000);
-            }
-        });
-
         function resetForm() {
             currentFiles = [];
             fileInput.value = '';
             fileInfo.style.display = 'none';
-            downloadBtn.style.display = 'none';
-            downloadBtn.classList.remove('success-animation');
             hideStatus();
             checkFormValidity();
         }
@@ -858,11 +802,10 @@
                 processBtn.classList.add('loading');
                 processBtn.innerHTML = '<span>⚡ Processing...</span>';
                 spinner.classList.add('show');
-                downloadBtn.style.display = 'none';
                 hideStatus();
             } else {
                 processBtn.classList.remove('loading');
-                processBtn.innerHTML = '<span>🚀 Process Documents</span>';
+                processBtn.innerHTML = '<span>🚀 Process & Download</span>';
                 spinner.classList.remove('show');
             }
         }
